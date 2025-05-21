@@ -1,0 +1,36 @@
+@startuml
+actor Operator
+participant "MES Client" as Client
+participant "MES API" as API
+participant Cache
+participant DB
+
+== Чтение заказов ==
+
+Operator -> Client: Открыть дашборд
+Client -> API: GET /orders?page=1
+API -> Cache: Get orders:page=1
+
+alt Заказы в кэше (cache hit)
+    Cache --> API: Список заказов
+    API --> Client: Список заказов
+
+else Заказов нет в кэше (cache miss)
+    Cache -> API: null
+    API -> DB: SELECT * FROM orders ...
+    DB --> API: Список заказов
+    API -> Cache: Set orders
+    API --> Client: Список заказов
+
+end
+
+== Изменение заказа ==
+
+Operator -> Client: Изменить статус заказа
+Client -> API: PATCH /orders/:id {status}
+API -> DB: UPDATE orders SET status = ...
+DB --> API: OK
+API -> Cache: Invalidate/update orders:id
+API --> Client: OK
+
+@enduml
